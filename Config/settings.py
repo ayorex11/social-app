@@ -31,7 +31,7 @@ SECRET_KEY = os.getenv('SECRET')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost',]
 
 
 # Application definition
@@ -43,10 +43,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'drf_yasg',
+    'djoser',
+    'corsheaders',
+    'Account',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -85,6 +92,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
 
 
 # Password validation
@@ -127,3 +135,46 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+from datetime import timedelta
+SIMPLE_JWT = {
+   'AUTH_HEADER_TYPES': ('JWT',),
+   'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+   'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+   'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',)
+}
+
+DJOSER = {
+    'SEND_ACTIVATION_EMAIL': True,
+    'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
+    'USERNAME_RESET_CONFIRM_URL': 'email/reset/confirm/{uid}/{token}',
+    'ACTIVATION_URL': 'activate/{uid}/{token}',
+    'SERIALIZERS': {
+        'user_create': 'Account.serializers.CustomUserCreateSerializer',
+    },
+
+}
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+REST_FRAMEWORK = {
+    
+    'DEFAULT_PERMISSION_CLASSES' : [
+        'rest_framework.permissions.AllowAny',
+    ],
+
+    'DEFAULT_AUTHENTICATION_CLASSES' : [
+       'rest_framework_simplejwt.authentication.JWTAuthentication',
+
+    ]
+}
+
+CORS_ALLOW_ALL_ORIGINS = True 
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    "http://localhost:8080",
+]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SSL_SECURE_REDIRECT = True
+
+AUTH_USER_MODEL = 'Account.User'
