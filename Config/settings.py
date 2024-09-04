@@ -43,17 +43,22 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_yasg',
+    'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',
-    'drf_yasg',
-    'djoser',
-    'corsheaders',
+    'dj_rest_auth',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'dj_rest_auth.registration',
     'Account',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -137,23 +142,23 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 from datetime import timedelta
 SIMPLE_JWT = {
-   'AUTH_HEADER_TYPES': ('JWT',),
-   'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-   'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-   'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',)
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=2),
+    "REFRESH_TOKEN_LIFETIME": timedelta(hours=24),
 }
 
-DJOSER = {
-    'SEND_ACTIVATION_EMAIL': True,
-    'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
-    'USERNAME_RESET_CONFIRM_URL': 'email/reset/confirm/{uid}/{token}',
-    'ACTIVATION_URL': 'activate/{uid}/{token}',
-    'SERIALIZERS': {
-        'user_create': 'Account.serializers.CustomUserCreateSerializer',
-    },
-
+REST_AUTH = {
+    
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': 'my-app-auth',
+    'JWT_AUTH_REFRESH_COOKIE': 'my-refresh-token',
 }
 
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'Account.serializers.RegisterSerializer',
+}
+REST_AUTH_SERIALIZERS = {
+    'USER_DETAILS_SERIALIZER': 'Account.serializers.UserDetailsSerializer',
+}
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 REST_FRAMEWORK = {
@@ -163,7 +168,7 @@ REST_FRAMEWORK = {
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES' : [
-       'rest_framework_simplejwt.authentication.JWTAuthentication',
+       'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
 
     ]
 }

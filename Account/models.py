@@ -2,8 +2,6 @@ from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin, Group, Permission
 from django.utils import timezone
 
-from django.contrib.auth.models import BaseUserManager
-
 class UserManager(BaseUserManager):
 
     def create(self, username, email, password, **extra_fields):
@@ -20,14 +18,14 @@ class UserManager(BaseUserManager):
     def create_user(self, username, email=None, password=None, **extra_fields):
         return self.create(username, email, password, **extra_fields)
 
-    def create_superuser(self, username, email, password, **extra_fields):
+    def create_superuser(self, username, email, password):
         if email is None:
             raise ValueError('The Email field must be set for superusers.')
-        user = self.create(username, email, password, **extra_fields)
+        user = self.create(username, email, password)
         user.is_active = True
         user.is_admin = True
         user.is_superuser = True
-        user.save(using=self._db)
+        user.save()
         return user
   
 
