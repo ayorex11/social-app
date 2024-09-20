@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Profile, follow_list
+from .models import Profile, follow_list, pending_list
 
 class ProfileSerializer(serializers.ModelSerializer):
 
@@ -33,3 +33,18 @@ class FollowingSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = follow_list
 		fields = ['following',]
+
+
+class PrivateAccountSerializer(serializers.ModelSerializer):
+
+	class Meta:
+		model = Profile
+		fields = ['private_account','user']
+		read_only_fields = ['user',]
+
+class PendingListSerializer(serializers.ModelSerializer):
+	pending_follower = ProSerializer(many=False)
+
+	class Meta:
+		model = pending_list
+		fields = ['id','pending_follower',]

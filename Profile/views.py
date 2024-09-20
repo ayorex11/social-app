@@ -3,8 +3,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes,authentication_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .serializers import ProfileSerializer, MiniProfileSerializer, FollowerSerializer, FollowingSerializer
-from .models import Profile, follow_list
+from .serializers import ProfileSerializer, MiniProfileSerializer, FollowerSerializer, FollowingSerializer, PrivateAccountSerializer, PendingListSerializer
+from .models import Profile, follow_list, pending_list
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -35,7 +35,7 @@ def update_profile(request):
 	profile = get_object_or_404(Profile, user=user)
 	serializer = ProfileSerializer(profile, data=request.data)
 	serializer.is_valid(raise_exception=True)
-	serializer.save(user=request.user)
+	serializer.save(user=user)
 	data = {'message': 'success',
 			'data':serializer.data}
 	pro = Profile.objects.get(user=user)
@@ -106,3 +106,154 @@ def view_following(request):
 		'data': serializer.data
 	}
 	return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def make_private(request):
+	user = request.user
+	profile = get_object_or_404(Profile, user=user)
+	if profile.private_account == True:
+		return Response({'account is already private'}, status=status.HTTP_400_BAD_REQUEST)
+	profile.private_account = True
+	profile.save()
+	serializer = PrivateAccountSerializer(profile, many=False)
+	data = {'message':'success',
+			'serializer': serializer.data}
+	return Response(data, status=status.HTTP_200_OK)
+
+
+
+@swagger_auto_schema(methods=["PATCH"], request_body=PrivateAccountSerializer())
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def unmake_private(request):
+	user = request.user
+	profile = get_object_or_404(Profile, user=user)
+	if profile.private_account == False:
+		return Response({'account is not private'}, status=status.HTTP_400_BAD_REQUEST)
+	profile.private_account = False
+	profile.save()
+	serializer = PrivateAccountSerializer(profile, many=False)
+	data = {'message':'success',
+			'serializer': serializer.data}
+	return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+
+def follow(request, username):
+	user = request.user
+	followers_profile = get_object_or_404(Profile, user=user)
+	followee_profile = get_object_or_404(Profile, username=username)
+	followee = follow_list.objects.get(profile=followee_profile)
+	if followers_profile in followee.followers.all():
+		return Response({'Already Following '}, status=status.HTTP_400_BAD_REQUEST)
+
+	if followee_profile.private_account == True:
+		if pending_list.objects.filter(profile=followee_profile, pending_follower=followers_profile).exists():
+			return Response({'follow request sent'}, status=status.HTTP_400_BAD_REQUEST)
+		pending = pending_list(profile=followee_profile, pending_follower=followers_profile)
+		pending.save()
+		return Response({'your follow request is pending'}, status=status.HTTP_200_OK)
+		#notification code coming later 
+
+
+	followee.followers.add(followers_profile)
+	followee_profile.followers_count += 1
+	followee_profile.save()
+
+
+	follower = follow_list.objects.get(profile=followers_profile)
+	follower.following.add(followee_profile)
+	followers_profile.following_count +=1
+	followers_profile.save()
+
+	return Response({f'You have followed {followee_profile} successfully'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+
+def unfollow(request, username):
+	user = request.user
+	followers_profile = get_object_or_404(Profile, user=user)
+	followee_profile = get_object_or_404(Profile, username=username)
+
+	followee = follow_list.objects.get(profile=followee_profile)
+	if followers_profile not in followee.followers.all():
+		return Response({'Not following '}, status=status.HTTP_400_BAD_REQUEST)
+	followee.followers.remove(followers_profile)
+	followee_profile.followers_count -= 1
+	followee_profile.save()
+
+
+	follower = follow_list.objects.get(profile=followers_profile)
+	follower.following.remove(followee_profile)
+	followers_profile.following_count -=1
+	followers_profile.save()
+
+	if followee_profile.private_account == True:
+		return Response({f'You have unfollowed {followee_profile} successfully. You will need to be aproved to follow again'},
+		 status=status.HTTP_200_OK)
+
+	else :
+		return Response({f'You have unfollowed {followee_profile} successfully'}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+
+def get_pending_list(request):
+	user = request.user 
+	profile = get_object_or_404(Profile, user=user)
+	if profile.private_account == False:
+		return Response({'Invalid Request'}, status=status.HTTP_400_BAD_REQUEST)
+
+	pending = pending_list.objects.filter(profile=profile)
+	serializer = PendingListSerializer(pending, many=True)
+
+	data = {'message':'success',
+			'data': serializer.data}
+
+	return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+
+def approve(request, pk):
+	user = request.user 
+	profile = get_object_or_404(Profile, user=user)
+	if profile.private_account == False:
+		return Response({'Invalid Request'}, status=status.HTTP_400_BAD_REQUEST)
+	pending = pending_list.objects.get(id=pk)
+	follower = pending.pending_follower
+	profil = follow_list.objects.get(profile=profile)
+	profil.followers.add(follower)
+	profile.followers_count += 1
+	profile.save()
+
+	follower_profile = follow_list.objects.get(profile=follower)
+	follower_profile.following.add(profile)
+	follower.following_count += 1
+	follower.save()
+	pending.delete()
+	#notification
+
+	return Response({'message': 'success'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+
+def disapprove(request, pk):
+	user = request.user 
+	profile = get_object_or_404(Profile, user=user)
+	if profile.private_account == False:
+		return Response({'Invalid Request'}, status=status.HTTP_400_BAD_REQUEST)
+	pending = pending_list.objects.get(id=pk)
+	pending.delete()
+
+	return Response({'message': 'success'}, status=status.HTTP_200_OK)

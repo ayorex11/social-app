@@ -44,3 +44,11 @@ def create_follow_list(sender, instance, created, **kwargs):
 post_save.connect(create_follow_list, sender=Profile)
 
 
+class pending_list(models.Model):
+	profile = models.ForeignKey(Profile, related_name='private_user', on_delete=models.CASCADE)
+	pending_follower = models.ForeignKey(Profile, related_name='pending', blank=True, null=True, on_delete=models.CASCADE)
+
+	def __str__(self):
+		return self.profile.__str__()
+
+
