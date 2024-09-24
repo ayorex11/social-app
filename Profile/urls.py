@@ -15,4 +15,7 @@ urlpatterns=[
 	path('get_pending_list/', views.get_pending_list),
 	path('approve/<int:pk>/', views.approve),
 	path('disapprove/<int:pk>/', views.disapprove),
+	path('block_user/<str:username>/', views.block_user),
+	path('unblock<str:username>/', views.unblock),
+	path('get_block_list/', views.get_block_list),
 ]

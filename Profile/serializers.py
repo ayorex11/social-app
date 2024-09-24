@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Profile, follow_list, pending_list
+from .models import Profile, follow_list, pending_list, block_list
 
 class ProfileSerializer(serializers.ModelSerializer):
 
@@ -48,3 +48,12 @@ class PendingListSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = pending_list
 		fields = ['id','pending_follower',]
+
+
+class BlockListSerializer(serializers.ModelSerializer):
+
+	blocked_profile = ProSerializer(many=False)
+
+	class Meta:
+		model = block_list
+		fields = ['id', 'blocked_profile', ]

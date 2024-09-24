@@ -3,8 +3,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes,authentication_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .serializers import ProfileSerializer, MiniProfileSerializer, FollowerSerializer, FollowingSerializer, PrivateAccountSerializer, PendingListSerializer
-from .models import Profile, follow_list, pending_list
+from .serializers import ProfileSerializer, MiniProfileSerializer, FollowerSerializer, FollowingSerializer, PrivateAccountSerializer, PendingListSerializer, BlockListSerializer
+from .models import Profile, follow_list, pending_list, block_list
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -148,6 +148,15 @@ def follow(request, username):
 	followers_profile = get_object_or_404(Profile, user=user)
 	followee_profile = get_object_or_404(Profile, username=username)
 	followee = follow_list.objects.get(profile=followee_profile)
+
+	block = block_list.objects.filter(profile=followers_profile, blocked_profile=followee_profile)
+	if block.exists():
+		return Response ({'user already blocked'}, status=status.HTTP_400_BAD_REQUEST)
+
+	block_lists = block_list.objects.filter(profile=followee_profile, blocked_profile=followers_profile)
+	if block_lists.exists():
+		return Response ({'you are blocked by the user'}, status=status.HTTP_400_BAD_REQUEST)
+
 	if followers_profile in followee.followers.all():
 		return Response({'Already Following '}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -257,3 +266,113 @@ def disapprove(request, pk):
 	pending.delete()
 
 	return Response({'message': 'success'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+
+def block_user(request, username):
+	user = request.user
+	#me 
+	user_blocking = get_object_or_404(Profile, user=user)
+	#you
+	user_blocked = get_object_or_404(Profile, username=username)
+
+	#me
+	blocker = follow_list.objects.get(profile = user_blocking)
+	#you
+	blockee = follow_list.objects.get(profile = user_blocked)
+	#if i am following you
+	block_lists = block_list.objects.filter(profile=user_blocking, blocked_profile=user_blocked)
+	if block_lists.exists():
+		return Response ({'user already blocked'}, status=status.HTTP_400_BAD_REQUEST)
+	if user_blocking in blockee.followers.all():
+		#and you are following me
+		if user_blocked in blocker.followers.all():
+			blockee.followers.remove(user_blocking)
+			blocker.followers.remove(user_blocked)
+
+			blocker.following.remove(user_blocked)
+			blockee.following.remove(user_blocking)
+
+			user_blocking.following_count -= 1
+			user_blocking.followers_count -= 1
+			user_blocking.save()
+
+			user_blocked.following_count -= 1
+			user_blocked.followers_count -= 1
+			user_blocked.save()
+
+			block = block_list(profile=user_blocking, blocked_profile=user_blocked)
+			block.save()
+
+			return Response({'user successfully blocked'}, status=status.HTTP_200_OK)
+
+		blocker.following.remove(user_blocked)
+		user_blocking.following_count -= 1
+		user_blocking.save()
+
+		blockee.followers.remove(user_blocking)
+		user_blocked.followers_count -= 1
+		user_blocked.save()
+
+		block = block_list(profile=user_blocking, blocked_profile=user_blocked)
+		block.save()
+
+		return Response({'user successfully blocked'}, status=status.HTTP_200_OK)
+	#if you are following me
+	elif user_blocked in blocker.followers.all():
+		blocker.followers.remove(user_blocked)
+		user_blocking.followers_count -= 1
+		user_blocking.save()
+
+		blockee.following.remove(user_blocking)
+		user_blocked.following_count -= 1
+		user_blocked.save()
+		block = block_list(profile=user_blocking, blocked_profile=user_blocked)
+		block.save()
+
+		return Response({'user successfully blocked'}, status=status.HTTP_200_OK)
+	# we are not following each other
+	else:
+		block = block_list(profile=user_blocking, blocked_profile=user_blocked)
+		block.save()
+
+		return Response({'user successfully blocked'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+
+def unblock(request, username):
+
+	user = request.user
+
+	blocker = get_object_or_404(Profile, user=user)
+	blocked = get_object_or_404(Profile, username=username)
+
+	block = block_list.objects.filter(profile=blocker, blocked_profile=blocked)
+	if block.exists():
+		block.delete()
+		return Response({'user successfully unblocked'}, status=status.HTTP_200_OK)
+
+	return Response({'Invalid Request'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+
+def get_block_list(request):
+	user = request.user
+
+	blocker = get_object_or_404(Profile, user=user)
+
+	block = block_list.objects.filter(profile=blocker)
+
+	serializer = BlockListSerializer(block, many=True)
+
+	data = {'message':'success',
+			'data':serializer.data}
+	return Response(data, status=status.HTTP_200_OK)

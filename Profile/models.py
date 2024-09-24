@@ -30,8 +30,8 @@ post_save.connect(create_profile, sender=User)
 
 class follow_list(models.Model):
 	profile = models.OneToOneField(Profile, related_name='followers_profile', on_delete=models.CASCADE)
-	followers = models.ManyToManyField(Profile, related_name='followers_followers', blank=True, null=True)
-	following = models.ManyToManyField(Profile, related_name='followers_following', blank=True, null=True)
+	followers = models.ManyToManyField(Profile, related_name='followers_followers', blank=True)
+	following = models.ManyToManyField(Profile, related_name='followers_following', blank=True)
 
 	def __str__(self):
 		return self.profile.__str__()
@@ -47,6 +47,15 @@ post_save.connect(create_follow_list, sender=Profile)
 class pending_list(models.Model):
 	profile = models.ForeignKey(Profile, related_name='private_user', on_delete=models.CASCADE)
 	pending_follower = models.ForeignKey(Profile, related_name='pending', blank=True, null=True, on_delete=models.CASCADE)
+
+	def __str__(self):
+		return self.profile.__str__()
+
+
+class block_list(models.Model):
+	profile = models.ForeignKey(Profile, related_name='block_user', on_delete=models.CASCADE)
+	blocked_profile = models.ForeignKey(Profile, related_name='blocked_user', on_delete=models.CASCADE)
+
 
 	def __str__(self):
 		return self.profile.__str__()
