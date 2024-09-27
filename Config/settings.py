@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'dj_rest_auth.registration',
     'Account',
     'Profile',
+    'notifs',
 ]
 
 MIDDLEWARE = [

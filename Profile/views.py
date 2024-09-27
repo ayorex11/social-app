@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.parsers import FormParser, MultiPartParser
 from datetime import datetime
+from notifs.models import Notification
 
 
 @api_view(['GET'])
@@ -165,8 +166,15 @@ def follow(request, username):
 			return Response({'follow request sent'}, status=status.HTTP_400_BAD_REQUEST)
 		pending = pending_list(profile=followee_profile, pending_follower=followers_profile)
 		pending.save()
+		title = 'New follow request'
+		body = f'You have a new follow request from {followers_profile}'
+		date_created = datetime.now()
+		read = False
+		notifs = Notification(profile=followee_profile, title=title, body=body, date_created=date_created, read=read)
+		notifs.save()
 		return Response({'your follow request is pending'}, status=status.HTTP_200_OK)
-		#notification code coming later 
+		#notification code coming later
+
 
 
 	followee.followers.add(followers_profile)
@@ -178,6 +186,13 @@ def follow(request, username):
 	follower.following.add(followee_profile)
 	followers_profile.following_count +=1
 	followers_profile.save()
+
+	title = 'You have a new follower'
+	body = f'{followers_profile} just followed you.'
+	date_created = datetime.now()
+	read = False
+	notifs = Notification(profile=followee_profile, title=title, body=body, date_created=date_created, read=read)
+	notifs.save()
 
 	return Response({f'You have followed {followee_profile} successfully'}, status=status.HTTP_200_OK)
 
@@ -250,6 +265,12 @@ def approve(request, pk):
 	follower.save()
 	pending.delete()
 	#notification
+	title = 'Your follow request has been approved'
+	body = f'Your follow request sent to {profile} has been approved'
+	date_created = datetime.now()
+	read = False
+	notifs = Notification(profile=follower, title=title, body=body, date_created=date_created, read=read)
+	notifs.save()
 
 	return Response({'message': 'success'}, status=status.HTTP_200_OK)
 
@@ -282,10 +303,11 @@ def block_user(request, username):
 	blocker = follow_list.objects.get(profile = user_blocking)
 	#you
 	blockee = follow_list.objects.get(profile = user_blocked)
-	#if i am following you
+	
 	block_lists = block_list.objects.filter(profile=user_blocking, blocked_profile=user_blocked)
 	if block_lists.exists():
 		return Response ({'user already blocked'}, status=status.HTTP_400_BAD_REQUEST)
+	#if i am following you
 	if user_blocking in blockee.followers.all():
 		#and you are following me
 		if user_blocked in blocker.followers.all():

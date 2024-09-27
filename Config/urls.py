@@ -43,5 +43,6 @@ urlpatterns = [
     path('auth/password/reset/confirm/<str:uidb64>/<str:token>', PasswordResetConfirmView.as_view(),
             name='password_reset_confirm'),
     path('profile/', include('Profile.urls')),
+    path('notifs/', include('notifs.urls')),
     
 ]
