@@ -2,8 +2,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from .serializers import NotificationSerializer
-from .models import Notification
+from .serializers import NotificationSerializer, CommentNotificationSerializer
+from .models import Notification, CommentNotification
 from Profile.models import Profile
 from django.shortcuts import get_object_or_404
 
@@ -28,6 +28,35 @@ def mark_as_read(request, pk):
 	user = request.user
 	profile = get_object_or_404(Profile, user=user)
 	notif = Notification.objects.get(id=pk)
+	if notif.profile != profile:
+		return response({'message': 'invalid request'}, status=status.HTTP_400_BAD_REQUEST)
+
+	notif.read = True
+	notif.save()
+	return Response({'message': 'success'}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+
+def get_comment_notifications(request):
+	user = request.user
+	profile = get_object_or_404(Profile, user=user)
+	notifs = CommentNotification.objects.filter(profile=profile)
+	serializer = CommentNotificationSerializer(notifs, many=True)
+
+	data = {'message': 'success',
+			'data': serializer.data}
+
+	return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+
+def mark_comment_as_read(request, pk):
+	user = request.user
+	profile = get_object_or_404(Profile, user=user)
+	notif = CommentNotification.objects.get(id=pk)
 	if notif.profile != profile:
 		return response({'message': 'invalid request'}, status=status.HTTP_400_BAD_REQUEST)
 

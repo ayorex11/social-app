@@ -173,14 +173,14 @@ def follow(request, username):
 		notifs = Notification(profile=followee_profile, title=title, body=body, date_created=date_created, read=read)
 		notifs.save()
 		return Response({'your follow request is pending'}, status=status.HTTP_200_OK)
-		#notification code coming later
+		
 
 
 
 	followee.followers.add(followers_profile)
-	followee_profile.followers_count += 1
 	followee_profile.save()
 
+	followee_profile.followers_count += 1
 
 	follower = follow_list.objects.get(profile=followers_profile)
 	follower.following.add(followee_profile)

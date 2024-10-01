@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'Account',
     'Profile',
     'notifs',
+    'posts',
 ]
 
 MIDDLEWARE = [

@@ -44,5 +44,6 @@ urlpatterns = [
             name='password_reset_confirm'),
     path('profile/', include('Profile.urls')),
     path('notifs/', include('notifs.urls')),
+    path('post/', include('posts.urls')),
     
 ]
