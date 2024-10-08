@@ -45,3 +45,9 @@ class Like(models.Model):
 		return self.post.__str__()
 
 
+class CommentLike(models.Model):
+	comment = models.ForeignKey(Comment, related_name='comment_likes', on_delete=models.CASCADE)
+	people = models.ManyToManyField(Profile, related_name='comment_likers')
+
+	def __str__(self):
+	 	return self.comment.__str__()

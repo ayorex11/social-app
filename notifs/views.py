@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404
 def get_notifications(request):
 	user = request.user
 	profile = get_object_or_404(Profile, user=user)
-	notifs = Notification.objects.filter(profile=profile)
+	notifs = Notification.objects.filter(profile=profile, read=False)
 	serializer = NotificationSerializer(notifs, many=True)
 
 	data = {'message': 'success',
@@ -42,7 +42,7 @@ def mark_as_read(request, pk):
 def get_comment_notifications(request):
 	user = request.user
 	profile = get_object_or_404(Profile, user=user)
-	notifs = CommentNotification.objects.filter(profile=profile)
+	notifs = CommentNotification.objects.filter(profile=profile, read=False)
 	serializer = CommentNotificationSerializer(notifs, many=True)
 
 	data = {'message': 'success',
