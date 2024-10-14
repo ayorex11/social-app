@@ -50,7 +50,7 @@ def send_message(request, username):
 	date_created = timezone.now()
 	read = False
 
-	body = validated_data['body']
+	body = validated_data['encrypted_body']
 	try:
 		with transaction.atomic():
 			checkpoint = check_block(profile, profile1)
@@ -83,13 +83,16 @@ def send_message(request, username):
 									read=read,
 									**validated_data)
 
-			chat.last_message = body
+			message.set_body(body)
+			message.save()
+
+			chat.last_message = message.encrypted_body
 			chat.last_updated = date_created
 			chat.messages.add(message)
 
 			chat.save()
 
-			chat2.last_message = body
+			chat2.last_message = message.encrypted_body
 			chat2.last_updated = date_created
 			chat2.messages.add(message)
 

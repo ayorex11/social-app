@@ -7,7 +7,7 @@ class CreateMessageSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Message
-		fields = ['body', 'replying_to']
+		fields = ['encrypted_body', 'replying_to']
 
 
 class ChatSerializer(serializers.ModelSerializer):
@@ -28,4 +28,4 @@ class UpdateMessageSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = Message
-		fields = ['body',]
+		fields = ['encrypted_body',]
