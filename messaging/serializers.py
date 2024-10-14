@@ -13,9 +13,10 @@ class CreateMessageSerializer(serializers.ModelSerializer):
 class ChatSerializer(serializers.ModelSerializer):
 	receiver = ProSerializer(many=False)
 
+
 	class Meta:
 		model = Chat
-		exclue = ['sender',]
+		exclue = ['sender','messages']
 
 class MessageSerializer(serializers.ModelSerializer):
 

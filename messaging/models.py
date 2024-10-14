@@ -31,6 +31,9 @@ class Message(models.Model):
     def get_key():
     	with open("fernet_key.txt", "rb") as key_file:
     		return key_file.read().strip()
+
+    class Meta:
+    	ordering = ['-date_created',]
     	
         
 
@@ -44,6 +47,17 @@ class Chat(models.Model):
 
 	def __str__(self):
 		return self.last_message
+
+	def get_body(self):
+
+		key = self.get_key()
+		fernet = Fernet(key)
+		return fernet.decrypt(self.last_message.encode()).decode()
+
+	@staticmethod
+	def get_key():
+		with open("fernet_key.txt", "rb") as key_file:
+			return key_file.read().strip()
 
 class ReadReceipts(models.Model):
 	profile = models.ForeignKey(Profile, related_name='profile_receipts', null=False, blank=False, on_delete=models.CASCADE)

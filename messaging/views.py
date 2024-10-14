@@ -109,9 +109,54 @@ def send_message(request, username):
 
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+
+def get_chats(request):
+	user = request.user
+	profile = get_object_or_404(Profile, user=user)
+
+	chats = Chat.objects.filter(sender=profile).order_by('-last_updated') 
+	decrypted_chats = []
+
+	for chat in chats:
+		decrypted_chats.append({
+			'id' : chat.id,
+			'receiver' : chat.receiver.username,
+			'receiver_id' : chat.receiver.id,
+			'last_message' : chat.get_body(),
+			'last_updated' : chat.last_updated,
+			'opened' : chat.opened
+			})
+
+	return Response(decrypted_chats, status=status.HTTP_200_OK)
 
 
 					
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 
+def open_chat(request, pk):
+	user = request.user
+	profile = get_object_or_404(Profile, user=user)
+
+	chat = Chat.objects.get(id=pk)
+	if profile != chat.sender:
+		return Response({'message':'invalid request'}, status=status.HTTP_400_BAD_REQUEST)
+	messages = []
+
+	for ch in chat.messages.all():
+		messages.append({
+			'id': ch.id,
+			'receiver': ch.receiver.username,
+			'receiver_id': ch.receiver.id,
+			'body': ch.get_body(),
+			'date_created': ch.date_created,
+			'read': ch.read,
+			'replying_to': ch.replying_to.get_body() if ch.replying_to else None,
+			'replying_to_id': ch.replying_to.id if ch.replying_to else None,
+			})
+
+	return Response(messages, status=status.HTTP_200_OK)
 
 
