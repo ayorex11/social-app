@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'Profile',
     'notifs',
     'posts',
+    'messaging',
 ]
 
 MIDDLEWARE = [
@@ -186,3 +187,6 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SSL_SECURE_REDIRECT = True
 
 AUTH_USER_MODEL = 'Account.User'
+
+
+USE_TZ = True

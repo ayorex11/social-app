@@ -45,5 +45,6 @@ urlpatterns = [
     path('profile/', include('Profile.urls')),
     path('notifs/', include('notifs.urls')),
     path('post/', include('posts.urls')),
+    path('messaging/', include('messaging.urls')),
     
 ]
