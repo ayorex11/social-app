@@ -18,4 +18,5 @@ urlpatterns=[
 	path('block_user/<str:username>/', views.block_user),
 	path('unblock<str:username>/', views.unblock),
 	path('get_block_list/', views.get_block_list),
+	path('get_follow_suggestions/', views.get_follow_suggestions),
 ]

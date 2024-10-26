@@ -30,3 +30,9 @@ class UpdateMessageSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Message
 		fields = ['encrypted_body',]
+
+class ReadReceiptsSerializer(serializers.ModelSerializer):
+
+	class Meta:
+		model = ReadReceipts
+		fields = ['read_receipts',]

@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
-from .serializers import CreateMessageSerializer, ChatSerializer,MessageSerializer, UpdateMessageSerializer
+from .serializers import CreateMessageSerializer, ChatSerializer,MessageSerializer, UpdateMessageSerializer, ReadReceiptsSerializer
 from .models import Message, ReadReceipts, Chat
 from Profile.models import Profile, follow_list, block_list 
 from django.shortcuts import get_object_or_404
@@ -160,3 +160,104 @@ def open_chat(request, pk):
 	return Response(messages, status=status.HTTP_200_OK)
 
 
+
+@swagger_auto_schema(methods=["PATCH"], request_body=UpdateMessageSerializer())
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+
+def edit_message(request, pk):
+	user  = request.user
+	profile = get_object_or_404(Profile, user=user)
+
+	message = Message.objects.get(id=pk)
+	if message.sender != profile:
+		return Response({'message':'invalid request'}, status=status.HTTP_400_BAD_REQUEST)
+
+	
+
+	if timezone.now() - message.date_created > timedelta(days=1):
+		return Response({'message':'message over a day cannot be edited'}, status=status.HTTP_400_BAD_REQUEST)
+
+	else:
+		serializer = UpdateMessageSerializer(message, data=request.data)
+		serializer.is_valid(raise_exception=True)
+		validated_data = serializer.validated_data
+		body = validated_data['encrypted_body']
+		message.set_body(body)
+		message.save()
+		data = {'message':'success',
+				'data':body}
+
+		return Response(data, status=status.HTTP_200_OK)
+
+
+@swagger_auto_schema(methods=["PATCH"], request_body=ReadReceiptsSerializer())
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+
+def edit_read_receipts(request):
+	user  = request.user
+	profile = get_object_or_404(Profile, user=user)
+
+	message = ReadReceipts.objects.get(profile=profile)
+
+
+	serializer = ReadReceiptsSerializer(message, data=request.data)
+	serializer.is_valid(raise_exception=True)
+	serializer.save()
+	validated_data = serializer.validated_data
+	if validated_data['read_receipts'] == False:
+		messages = Message.objects.filter(sender=profile)
+		for me in messages:
+			me.read = False
+			me.save()
+
+		messages2 = Message.objects.filter(receiver=profile)
+		for mess in messages2:
+			mess.read = False
+			mess.save()
+
+	else:
+		messages = Message.objects.filter(sender=profile)
+		for me in messages:
+			me.read = True
+			me.save()
+
+		messages2 = Message.objects.filter(receiver=profile)
+		for mess in messages2:
+			mess.read = True
+			mess.save()
+
+	data = {'message':'success',
+			'data':serializer.data}
+
+	return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+
+def mark_as_read(request, pk):
+
+	user = request.user
+	profile_test =  get_object_or_404(Profile, user=user)
+
+	message = get_object_or_404(Message,id=pk)
+	if message.sender == profile_test:
+		return Response({'message':'You cannot mark your own message as read'}, status=status.HTTP_400_BAD_REQUEST)
+
+	elif message.receiver != profile_test : 
+		return Response({'message':'invalid request'}, status=status.HTTP_400_BAD_REQUEST)
+
+	else:
+		read_receipt1 = get_object_or_404(ReadReceipts, profile=message.sender)
+		read_receipt2 = get_object_or_404(ReadReceipts, profile=message.receiver)
+		if read_receipt1.read_receipts == False or read_receipt2.read_receipts == False:
+			message.read = False
+			message.save()
+			return Response({'message':'success'}, status=status.HTTP_200_OK)
+
+		else:
+			message.read = True
+			message.save()
+			return Response({'message':'success'}, status=status.HTTP_200_OK)

@@ -149,6 +149,8 @@ def follow(request, username):
 	followers_profile = get_object_or_404(Profile, user=user)
 	followee_profile = get_object_or_404(Profile, username=username)
 	followee = follow_list.objects.get(profile=followee_profile)
+	if followers_profile == followee_profile:
+		return Response ({'What is wrong with you? Following yourself? really?'}, status=status.HTTP_400_BAD_REQUEST)
 
 	block = block_list.objects.filter(profile=followers_profile, blocked_profile=followee_profile)
 	if block.exists():
@@ -177,24 +179,24 @@ def follow(request, username):
 
 
 
-	followee.followers.add(followers_profile)
-	followee_profile.save()
+	else:
+		followee.followers.add(followers_profile)
+		followee_profile.followers_count += 1
+		followee_profile.save()
 
-	followee_profile.followers_count += 1
+		follower = follow_list.objects.get(profile=followers_profile)
+		follower.following.add(followee_profile)
+		followers_profile.following_count +=1
+		followers_profile.save()
 
-	follower = follow_list.objects.get(profile=followers_profile)
-	follower.following.add(followee_profile)
-	followers_profile.following_count +=1
-	followers_profile.save()
+		title = 'You have a new follower'
+		body = f'{followers_profile} just followed you.'
+		date_created = datetime.now()
+		read = False
+		notifs = Notification(profile=followee_profile, title=title, body=body, date_created=date_created, read=read)
+		notifs.save()
 
-	title = 'You have a new follower'
-	body = f'{followers_profile} just followed you.'
-	date_created = datetime.now()
-	read = False
-	notifs = Notification(profile=followee_profile, title=title, body=body, date_created=date_created, read=read)
-	notifs.save()
-
-	return Response({f'You have followed {followee_profile} successfully'}, status=status.HTTP_200_OK)
+		return Response({f'You have followed {followee_profile} successfully'}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -398,3 +400,35 @@ def get_block_list(request):
 	data = {'message':'success',
 			'data':serializer.data}
 	return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+
+def get_follow_suggestions(request):
+	user = request.user
+	profile = get_object_or_404(Profile, user=user)
+	follows = get_object_or_404(follow_list, profile=profile)
+
+	follow_suggestions = []
+	suggested_ids = set()
+
+	for people in follows.following.all():
+		if people in follows.followers.all():
+			suggestions = get_object_or_404(follow_list, profile=people)
+			for person in suggestions.following.all():
+				person_followers = get_object_or_404(follow_list, profile=person)
+				if profile in person_followers.followers.all() or profile == person or person.id in suggested_ids:
+					pass 
+				else:
+					follow_suggestions.append({
+						'id':person.id,
+						'username':person.username
+						})
+					suggested_ids.add(person.id)
+
+	if not follow_suggestions:
+		return Response({'message':'No follow suggestions available'}, status=status.HTTP_200_OK)
+
+
+	return Response(follow_suggestions, status=status.HTTP_200_OK)
